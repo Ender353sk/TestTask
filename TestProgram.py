@@ -11,7 +11,7 @@ from typing import List, Dict, Tuple, Optional
 # Конфігурація
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = "gpt-3.5-turbo"
-CPP_COMPILER = "C:\msys64(2)\mingw64\bin\g++.exe"
+CPP_COMPILER = "g++"
 CPP_OUTPUT_EXECUTABLE_NAME = "gps_algorithm" # Ім'я вихідного виконуваного файлу
 
 TEST_FILES = ["points.json", "points2.json", "points3.json"] # Список файлів з тестовімі даними
@@ -61,6 +61,23 @@ class GPSDataProcessor:
         """Генерує C++ код за допомогою OpenAI."""
         base_prompt = f"""
 Напиши алгоритм на C++ для виявлення та виправлення аномальних GPS координат.
+
+Обов'язково включи функції from_json та to_json для структури Coordinate (визначеної як struct Coordinate {{ double lat; double lon; long long time; }};). 
+Ці функції повинні бути визначені в глобальному просторі імен (або в тому ж просторі імен, що й Coordinate)
+для бібліотеки nlohmann::json, щоб забезпечити коректну десеріалізацію та серіалізацію std::vector<Coordinate> з JSON та в JSON.
+Ось приклад, який обов'язково треба включити у твій код:
+
+// Функції для роботи з nlohmann/json та структурою Coordinate
+void from_json(const nlohmann::json& j, Coordinate& c) {{
+    j.at("lat").get_to(c.lat);
+    j.at("lon").get_to(c.lon);
+    j.at("time").get_to(c.time);
+}}
+
+void to_json(nlohmann::json& j, const Coordinate& c) {{
+    j = nlohmann::json{{"lat", c.lat}}, {{"lon", c.lon}}, {{"time", c.time}};
+}}
+
 Вимоги:
 1. Вхід: JSON масив з координатами (lat, lon у форматі *1e6, тобто цілі числа, які потрібно розділити на 10^6 для отримання десяткових градусів) та часом (timestamp, unixtime у секундах).
 2. Виявлення аномалій: точка вважається аномальною, якщо швидкість руху до/від цієї точки перевищує {ANOMALY_SPEED_THRESHOLD_M_PER_S} м/с. Швидкість повинна розраховуватися між сусідніми точками.
@@ -112,7 +129,7 @@ class GPSDataProcessor:
             # Додаємо прапорці для оптимізації та попереджень "-std=c++17" для сучасних стандартів C++
             # "-O3" для максимальної оптимізації "-Wall -Wextra -pedantic" для включення всіх попереджень
             subprocess.run(
-                [CPP_COMPILER, cpp_file, "-o", os.path.join(OUTPUT_DIR, CPP_OUTPUT_EXECUTABLE_NAME),
+                [CPP_COMPILER, cpp_file, "-Iinclude", "-o", os.path.join(OUTPUT_DIR, CPP_OUTPUT_EXECUTABLE_NAME),
                  "-std=c++17", "-O3", "-Wall", "-Wextra", "-pedantic"],
                 check=True,
                 stderr=subprocess.PIPE,
