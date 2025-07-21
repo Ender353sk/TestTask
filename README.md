@@ -1,9 +1,9 @@
 # Інструкція для запуску програми
 
 ## Для запуску цього проєкту вам знадобиться:
--Visual Studio 2022 з встановленим Python
--Компілятор g++
--OpenAI API Key
+Visual Studio 2022 з встановленим Python. 
+Компілятор g++. 
+OpenAI API Key.
 
 ## Щоб запустити програму:
 1. Створіть новий проект типу Python Application в Visual Studio 2022
